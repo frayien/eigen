@@ -76,8 +76,10 @@ class CompressedStorage {
   }
 
   ~CompressedStorage() {
-    conditional_aligned_delete_auto<Scalar, true>(m_storage.values, m_storage.allocatedSize);
-    conditional_aligned_delete_auto<StorageIndex, true>(m_storage.indices, m_storage.allocatedSize);
+    if (MaxSize == Dynamic) {
+      conditional_aligned_delete_auto<Scalar, true>(m_storage.values, m_storage.allocatedSize);
+      conditional_aligned_delete_auto<StorageIndex, true>(m_storage.indices, m_storage.allocatedSize);
+    }
   }
 
   void reserve(Index size) {
