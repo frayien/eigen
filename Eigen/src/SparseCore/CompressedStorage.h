@@ -17,8 +17,19 @@ namespace Eigen {
 
 namespace internal {
 
-template <typename Scalar, typename StorageIndex>
+template <typename Scalar, typename StorageIndex, int MaxSize_>
 struct InnerStorage {
+  Scalar values[MaxSize_];
+  StorageIndex indices[MaxSize_];
+  Index size = MaxSize_;
+  Index allocatedSize = MaxSize_;
+
+  InnerStorage() = default;
+  ~InnerStorage() = default;
+};
+
+template <typename Scalar, typename StorageIndex>
+struct InnerStorage<Scalar, StorageIndex, Dynamic> {
   Scalar* values;
   StorageIndex* indices;
   Index size;
@@ -32,7 +43,7 @@ struct InnerStorage {
  * Stores a sparse set of values as a list of values and a list of indices.
  *
  */
-template <typename Scalar_, typename StorageIndex_>
+template <typename Scalar_, typename StorageIndex_, int MaxSize = Dynamic>
 class CompressedStorage {
  public:
   typedef Scalar_ Scalar;
@@ -79,6 +90,7 @@ class CompressedStorage {
   }
 
   void resize(Index size, double reserveSizeFactor = 0) {
+    eigen_assert(MaxSize == Dynamic && "CompressedStorage can be resized only for Dynamic sizes");
     if (m_storage.allocatedSize < size) {
       // Avoid underflow on the std::min<Index> call by choosing the smaller index type.
       using SmallerIndexType =
@@ -206,11 +218,8 @@ class CompressedStorage {
   }
 
  protected:
-  using Storage = InnerStorage<Scalar, StorageIndex>;
+  using Storage = InnerStorage<Scalar, StorageIndex, MaxSize>;
   Storage m_storage;
-  // Index m_storage.allocatedSize;
-  // Scalar* m_storage.values;
-  // StorageIndex* m_storage.indices;
 };
 
 }  // end namespace internal
