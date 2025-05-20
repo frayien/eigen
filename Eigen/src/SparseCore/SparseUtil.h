@@ -93,18 +93,30 @@ template <typename T, int Cols, int Flags>
 struct sparse_eval<T, 1, Cols, Flags> {
   typedef typename traits<T>::Scalar Scalar_;
   typedef typename traits<T>::StorageIndex StorageIndex_;
+  enum {
+    Rows_ = traits<T>::RowsAtCompileTime,
+    Cols_ = traits<T>::ColsAtCompileTime,
+    // MaxNZ_ = traits<T>::MaxNZ
+  };
 
  public:
-  typedef SparseVector<Scalar_, RowMajor, StorageIndex_> type;
+  // TODO Find a clean way to forward MaxNZ (enum does not work if T is e.g. Product<...>)
+  typedef SparseVector<Scalar_, RowMajor, StorageIndex_, Rows_, Cols_, Dynamic> type;
 };
 
 template <typename T, int Rows, int Flags>
 struct sparse_eval<T, Rows, 1, Flags> {
   typedef typename traits<T>::Scalar Scalar_;
   typedef typename traits<T>::StorageIndex StorageIndex_;
+  enum {
+    Rows_ = traits<T>::RowsAtCompileTime,
+    Cols_ = traits<T>::ColsAtCompileTime,
+    // MaxNZ_ = traits<T>::MaxNZ
+  };
 
  public:
-  typedef SparseVector<Scalar_, ColMajor, StorageIndex_> type;
+  // TODO Find a clean way to forward MaxNZ (enum does not work if T is e.g. Product<...>)
+  typedef SparseVector<Scalar_, ColMajor, StorageIndex_, Rows_, Cols_, Dynamic> type;
 };
 
 // TODO this seems almost identical to plain_matrix_type<T, Sparse>
@@ -114,9 +126,15 @@ struct sparse_eval {
   typedef typename traits<T>::StorageIndex StorageIndex_;
   enum { Options_ = ((Flags & RowMajorBit) == RowMajorBit) ? RowMajor : ColMajor };
 
+  enum {
+    Rows_ = traits<T>::RowsAtCompileTime,
+    Cols_ = traits<T>::ColsAtCompileTime,
+    // MaxNZ_ = traits<T>::MaxNZ
+  };
+
  public:
-  // TODO fix here
-  typedef SparseMatrix<Scalar_, Options_, StorageIndex_, Dynamic, Dynamic, Dynamic> type;
+  // TODO Find a clean way to forward MaxNZ (enum does not work if T is e.g. Product<...>)
+  typedef SparseMatrix<Scalar_, Options_, StorageIndex_, Rows_, Cols_, Dynamic> type;
 };
 
 template <typename T, int Flags>
@@ -133,8 +151,6 @@ struct plain_matrix_type<T, Sparse> {
   typedef typename traits<T>::StorageIndex StorageIndex_;
   enum {
     Options_ = ((evaluator<T>::Flags & RowMajorBit) == RowMajorBit) ? RowMajor : ColMajor,
-    // MaxRowsAtCompileTime_ = traits<T>::MaxRowsAtCompileTime,
-    // MaxRowsAtCompileTime_ = traits<T>::MaxRowsAtCompileTime,
   };
 
  public:

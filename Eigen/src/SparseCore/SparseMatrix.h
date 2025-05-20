@@ -154,30 +154,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
   Index m_innerSize;
   Storage m_data;
 
-  template <int MaxSize_>
-  struct IndexStorage {
-    StorageIndex outerIndex[MaxSize_ + 1] = {0};
-    StorageIndex* innerNonZeros;  // not used in static size
-    StorageIndex* outerPtr() { return outerIndex; }
-    const StorageIndex* outerPtr() const { return outerIndex; }
-    StorageIndex* innerNZPtr() { return innerNonZeros; }
-    const StorageIndex* innerNZPtr() const { return innerNonZeros; }
-    IndexStorage() : innerNonZeros(0) {}
-    ~IndexStorage() = default;
-  };
-
-  template <>
-  struct IndexStorage<Dynamic> {
-    StorageIndex* outerIndex;
-    StorageIndex* innerNonZeros;  // optional, if null then the data is compressed
-    StorageIndex* outerPtr() { return outerIndex; }
-    const StorageIndex* outerPtr() const { return outerIndex; }
-    StorageIndex* innerNZPtr() { return innerNonZeros; }
-    const StorageIndex* innerNZPtr() const { return innerNonZeros; }
-    IndexStorage() : outerIndex(0), innerNonZeros(0) {}
-    ~IndexStorage() = default;
-  };
-  IndexStorage<isStatic ? (IsRowMajor ? Rows_ : Cols_) : Dynamic> m_idx_data;
+  Eigen::internal::IndexStorage<StorageIndex, isStatic ? (IsRowMajor ? Rows_ : Cols_) : Dynamic> m_idx_data;
 
  public:
   /** \returns the number of rows of the matrix */
@@ -439,7 +416,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
   template <class SizesType, int A = MaxNZ_, typename std::enable_if<A != Dynamic, int>::type = 0>
   inline void reserveInnerVectors(const SizesType&) {
     eigen_assert(false && "You cannot call dynamic size methods for static size matrices");
-  };
+  }
 
  public:
   //--- low level purely coherent filling ---
@@ -800,7 +777,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
   template <int A = MaxNZ_, typename std::enable_if<A != Dynamic, int>::type = 0>
   void resize(Index, Index) {
     eigen_assert(false && "You cannot call dynamic size methods for static size matrices");
-  };
+  }
 
   /** \internal
    * Resize the nonzero vector to \a size */
@@ -817,8 +794,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
 
   /** Default constructor yielding an empty \c 0 \c x \c 0 matrix */
   inline SparseMatrix() : m_outerSize(0), m_innerSize(0), m_idx_data() {
-    if (!isStatic)
-      resize(0, 0);
+    EIGEN_IF_CONSTEXPR(!isStatic) { resize(0, 0); }
     else {
       m_outerSize = IsRowMajor ? Rows_ : Cols_;
       m_innerSize = IsRowMajor ? Cols_ : Rows_;
@@ -828,7 +804,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
   /** Constructs a \a rows \c x \a cols empty matrix */
 
   inline SparseMatrix(Index rows, Index cols) : m_outerSize(0), m_innerSize(0), m_idx_data() {
-    if (!isStatic) resize(rows, cols);
+    EIGEN_IF_CONSTEXPR(!isStatic) resize(rows, cols);
   }
 
   /** Constructs a sparse matrix from the sparse expression \a other */
@@ -986,7 +962,7 @@ class SparseMatrix : public SparseCompressedBase<SparseMatrix<Scalar_, Options_,
 
   /** Destructor */
   inline ~SparseMatrix() {
-    if (!isStatic) {
+    EIGEN_IF_CONSTEXPR(!isStatic) {
       internal::conditional_aligned_delete_auto<StorageIndex, true>(m_idx_data.outerIndex, m_outerSize + 1);
       internal::conditional_aligned_delete_auto<StorageIndex, true>(m_idx_data.innerNonZeros, m_outerSize);
     }

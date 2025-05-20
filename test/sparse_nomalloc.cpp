@@ -65,7 +65,7 @@ void sparse_fixed_nnz_test(const SparseMatrixType&) {
   VERIFY_IS_APPROX(m, a);
 }
 
-EIGEN_DECLARE_TEST(sparse_fixed_nnz) {
+EIGEN_DECLARE_TEST(sparse_nomalloc) {
   g_dense_op_sparse_count = 0;  // Suppresses compiler warning
   for (int i = 0; i < g_repeat; i++) {
     // Square matrices, ColMajor,
@@ -81,7 +81,7 @@ EIGEN_DECLARE_TEST(sparse_fixed_nnz) {
       CALL_SUBTEST_2((sparse_fixed_nnz_test(SparseMatrix<double, RowMajor, int, 3, 3, 4>())));
       CALL_SUBTEST_2((sparse_fixed_nnz_test(SparseMatrix<double, RowMajor, int, 4, 4, 4>())));
       CALL_SUBTEST_2((sparse_fixed_nnz_test(SparseMatrix<double, RowMajor, int, 10, 10, 4>())));
-      CALL_SUBTEST_2((sparse_fixed_nnz_test(SparseMatrix<double, RowMajor, int, 4, 4, 13>())));
+      CALL_SUBTEST_2((sparse_fixed_nnz_test(SparseMatrix<double, RowMajor, int, 20, 20, 13>())));
     }
 
     // complex numbers, 8 non-zeros

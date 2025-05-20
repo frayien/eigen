@@ -36,8 +36,27 @@ struct InnerStorage<Scalar, StorageIndex, Dynamic> {
   Index allocatedSize;
 
   InnerStorage() : values(0), indices(0), size(0), allocatedSize(0) {}
-  ~InnerStorage() = default;
+
+  ~InnerStorage() {
+    conditional_aligned_delete_auto<Scalar, true>(values, allocatedSize);
+    conditional_aligned_delete_auto<StorageIndex, true>(indices, allocatedSize);
+  }
 };
+
+template <typename Scalar, typename StorageIndex, int MaxSize>
+void inner_storage_swap(InnerStorage<Scalar, StorageIndex, MaxSize>& lhs,
+                        InnerStorage<Scalar, StorageIndex, MaxSize>& rhs) {
+  std::swap(lhs.values, rhs.values);
+  std::swap(lhs.indices, rhs.indices);
+  std::swap(lhs.size, rhs.size);
+  std::swap(lhs.allocatedSize, rhs.allocatedSize);
+}
+
+template <typename InnerStorage_>
+void inner_storage_assign_impl(InnerStorage_& lhs, const InnerStorage_& rhs) {
+  internal::smart_copy(rhs.values, rhs.values + lhs.size, lhs.values);
+  internal::smart_copy(rhs.indices, rhs.indices + lhs.size, lhs.indices);
+}
 
 /** \internal
  * Stores a sparse set of values as a list of values and a list of indices.
@@ -52,6 +71,16 @@ class CompressedStorage {
  protected:
   typedef typename NumTraits<Scalar>::Real RealScalar;
 
+  template <int MS = MaxSize, typename std::enable_if<MS == Dynamic, int>::type = 0>
+  void before_equal(const CompressedStorage& other) {
+    resize(other.size());
+  }
+
+  template <int MS = MaxSize, typename std::enable_if<MS != Dynamic, int>::type = 0>
+  void before_equal(const CompressedStorage& other) {
+    eigen_assert(other.size() == MaxSize);
+  }
+
  public:
   CompressedStorage() : m_storage() {}
 
@@ -60,27 +89,14 @@ class CompressedStorage {
   CompressedStorage(const CompressedStorage& other) : m_storage() { *this = other; }
 
   CompressedStorage& operator=(const CompressedStorage& other) {
-    resize(other.size());
-    if (other.size() > 0) {
-      internal::smart_copy(other.valuePtr(), other.valuePtr() + size(), valuePtr());
-      internal::smart_copy(other.indexPtr(), other.indexPtr() + size(), indexPtr());
-    }
+    before_equal(other);
+    inner_storage_assign_impl(m_storage, other.m_storage);
     return *this;
   }
 
-  void swap(CompressedStorage& other) {
-    std::swap(m_storage.values, other.m_storage.values);
-    std::swap(m_storage.indices, other.m_storage.indices);
-    std::swap(m_storage.size, other.m_storage.size);
-    std::swap(m_storage.allocatedSize, other.m_storage.allocatedSize);
-  }
+  void swap(CompressedStorage& other) { inner_storage_swap(m_storage, other.m_storage); }
 
-  ~CompressedStorage() {
-    if (MaxSize == Dynamic) {
-      conditional_aligned_delete_auto<Scalar, true>(m_storage.values, m_storage.allocatedSize);
-      conditional_aligned_delete_auto<StorageIndex, true>(m_storage.indices, m_storage.allocatedSize);
-    }
-  }
+  ~CompressedStorage() = default;
 
   void reserve(Index size) {
     Index newAllocatedSize = m_storage.size + size;
